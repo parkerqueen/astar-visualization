@@ -43,6 +43,7 @@ func (fnode *fNode) adjustFCost(start, end *fNode, visited bool) {
 	fCost = gCost + hCost
 
 	if !visited || fCost < fnode.fCost {
+		fnode.parent = start
 		fnode.gCost = gCost
 		fnode.hCost = hCost
 		fnode.fCost = fCost
@@ -57,7 +58,7 @@ func (grid *Grid) AStarSearch(start, end Node) []Node {
 	fnode := &fNode{node: end}
 	fnodeMap[end] = fnode
 
-	fnode = &fNode{node: start}
+	fnode = &fNode{node: start, visited: true}
 	openList.push(fnode)
 	fnodeMap[start] = fnode
 

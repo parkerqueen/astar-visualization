@@ -1,6 +1,8 @@
 package astar
 
-import "github.com/emirpasic/gods/trees/binaryheap"
+import (
+	"github.com/emirpasic/gods/trees/binaryheap"
+)
 
 type heap struct {
 	bheap *binaryheap.Heap
@@ -23,7 +25,7 @@ func newHeap() *heap {
 	return &heap{bheap: binaryheap.NewWith(comparator)}
 }
 
-func (bheap *heap) push(fnodes ...*fNode) {
+func (bheap *heap) push(fnodes *fNode) {
 	bheap.bheap.Push(fnodes)
 }
 
