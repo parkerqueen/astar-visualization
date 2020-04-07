@@ -11,6 +11,6 @@ func main() {
 		{R: 5, C: 5}: true}
 
 	grid := astar.Grid{Rows: 10, Cols: 10, Walls: walls}
-	path := grid.AStarSearch(astar.Node{R: 0, C: 0}, astar.Node{R: 10, C: 10})
+	path := grid.AStarSearch(astar.Node{R: 0, C: 0}, astar.Node{R: 8, C: 5})
 	fmt.Println(path)
 }

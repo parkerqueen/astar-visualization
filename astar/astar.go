@@ -1,7 +1,20 @@
+//TODOS
+//Add comments
+//Think of a GUI architecture
+//Refactor the code
+
 package astar
+
+import (
+	"github.com/emirpasic/gods/trees/binaryheap"
+)
 
 const simpleCost = 10
 const diagonalCost = 14
+
+//---------------------------------------------
+//Exported Structs
+//---------------------------------------------
 
 //A Node struct denoting a location on the grid
 type Node struct {
@@ -16,6 +29,10 @@ type Grid struct {
 	Walls map[Node]bool
 }
 
+//---------------------------------------------
+//Local Structs
+//---------------------------------------------
+
 type fNode struct {
 	node    Node
 	gCost   uint
@@ -26,62 +43,39 @@ type fNode struct {
 	parent  *fNode
 }
 
-func (fnode *fNode) adjustFCost(start, end *fNode, visited bool) {
-	current := fnode.node
-	gCost := uint(0)
-	hCost := uint(0)
-	fCost := uint(0)
-
-	if absDiff(current.R, start.node.R) == 1 &&
-		absDiff(current.C, start.node.C) == 1 {
-		gCost = start.gCost + diagonalCost
-	} else {
-		gCost = start.gCost + simpleCost
-	}
-
-	hCost = max(absDiff(current.R, end.node.R), absDiff(current.C, end.node.C))
-	fCost = gCost + hCost
-
-	if !visited || fCost < fnode.fCost {
-		fnode.parent = start
-		fnode.gCost = gCost
-		fnode.hCost = hCost
-		fnode.fCost = fCost
-	}
-}
+//---------------------------------------------
+//Grid Methods
+//---------------------------------------------
 
 //AStarSearch performs the A Star path finding on a grid
 func (grid *Grid) AStarSearch(start, end Node) []Node {
-	openList := newHeap()
 	fnodeMap := map[Node]*fNode{}
+	openList := binaryheap.NewWith(comparator)
 
-	fnode := &fNode{node: end}
-	fnodeMap[end] = fnode
-
-	fnode = &fNode{node: start, visited: true}
-	openList.push(fnode)
-	fnodeMap[start] = fnode
+	fnodeMap[end] = &fNode{node: end}
+	fnodeMap[start] = &fNode{node: start, visited: true}
 
 	pathlen := uint(0)
-	for {
-		current, ok := openList.pop()
-		if !ok {
-			break
-		}
-		current.closed = true
+	openList.Push(fnodeMap[start])
 
-		if current.node == end {
-			path := make([]Node, 0, pathlen)
-			for ; current.parent != nil; current = current.parent {
-				path = append(path, current.node)
-			}
-			return path
+	var current *fNode
+	for {
+		popped, ok := openList.Pop()
+		if !ok {
+			return nil
 		}
+		current = popped.(*fNode)
+
+		current.closed = true
+		if current.node == end {
+			return makepath(current, pathlen)
+		}
+
 		pathlen = pathlen + 1
 
 		neighbours := grid.nodeNeighbours(current.node)
 		for _, neighbour := range neighbours {
-			fnode = fnodeMap[neighbour]
+			fnode := fnodeMap[neighbour]
 
 			if fnode == nil {
 				fnode = &fNode{node: neighbour}
@@ -95,12 +89,10 @@ func (grid *Grid) AStarSearch(start, end Node) []Node {
 			fnode.adjustFCost(current, fnodeMap[end], fnode.visited)
 			if !fnode.visited {
 				fnode.visited = true
-				openList.push(fnode)
+				openList.Push(fnode)
 			}
 		}
 	}
-
-	return nil
 }
 
 func (grid *Grid) nodeNeighbours(node Node) []Node {
@@ -121,6 +113,58 @@ func (grid *Grid) nodeNeighbours(node Node) []Node {
 	}
 
 	return neighbours
+}
+
+//---------------------------------------------
+//fNode Methods
+//---------------------------------------------
+
+func (fnode *fNode) adjustFCost(start, end *fNode, visited bool) {
+	gCost := uint(0)
+	hCost := uint(0)
+	fCost := uint(0)
+	current := fnode.node
+
+	if absDiff(current.R, start.node.R) == 1 &&
+		absDiff(current.C, start.node.C) == 1 {
+		gCost = start.gCost + diagonalCost
+	} else {
+		gCost = start.gCost + simpleCost
+	}
+	hCost = max(absDiff(current.R, end.node.R), absDiff(current.C, end.node.C))
+	fCost = gCost + hCost
+
+	if !visited || fCost < fnode.fCost {
+		fnode.parent = start
+		fnode.gCost = gCost
+		fnode.hCost = hCost
+		fnode.fCost = fCost
+	}
+}
+
+//---------------------------------------------
+//Helper Functions for A* Pathfinding
+//---------------------------------------------
+
+func comparator(a, b interface{}) int {
+	x := a.(*fNode)
+	y := b.(*fNode)
+
+	if x.fCost < y.fCost {
+		return -1
+	} else if x.fCost == y.fCost {
+		return 0
+	} else {
+		return 1
+	}
+}
+
+func makepath(fnode *fNode, pathlen uint) []Node {
+	path := make([]Node, 0, pathlen)
+	for ; fnode.parent != nil; fnode = fnode.parent {
+		path = append(path, fnode.node)
+	}
+	return path
 }
 
 //---------------------------------------------
