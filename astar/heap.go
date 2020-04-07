@@ -31,5 +31,9 @@ func (bheap *heap) push(fnodes *fNode) {
 
 func (bheap *heap) pop() (*fNode, bool) {
 	fnode, ok := bheap.bheap.Pop()
-	return fnode.(*fNode), ok
+
+	if ok {
+		return fnode.(*fNode), ok
+	}
+	return nil, ok
 }
