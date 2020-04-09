@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/parkerqueen/a-star-go/astar"
 )
 
@@ -10,7 +8,6 @@ func main() {
 	walls := map[astar.Node]bool{
 		{R: 5, C: 5}: true}
 
-	grid := astar.Grid{Rows: 10, Cols: 10, Walls: walls}
-	path := grid.AStarSearch(astar.Node{R: 0, C: 0}, astar.Node{R: 8, C: 5})
-	fmt.Println(path)
+	grid := astar.Grid{Rows: 50, Cols: 50, Walls: walls}
+	grid.AStarVisualization(astar.Node{R: 5, C: 6}, astar.Node{R: 8, C: 25})
 }
