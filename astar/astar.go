@@ -1,31 +1,11 @@
-//TODOS
-//Add comments
-//Think of a way to carve out the GUI code in a separate file
-
 package astar
 
 import (
-	"image/color"
-
-	"fyne.io/fyne"
-	"fyne.io/fyne/app"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/layout"
 	"github.com/emirpasic/gods/trees/binaryheap"
 )
 
 const simpleCost = 10
 const diagonalCost = 14
-
-var simpleCellCol = color.RGBA{R: 255, G: 255, B: 255, A: 1}
-var sourceCellCol = color.RGBA{R: 135, G: 101, B: 53, A: 1}
-var destCellCol = color.RGBA{R: 53, G: 135, B: 105, A: 1}
-var openCellCol = color.RGBA{R: 20, G: 30, B: 100, A: 1}
-var closedCellCol = color.RGBA{R: 251, G: 25, B: 10, A: 1}
-var blockedCellCol = color.RGBA{R: 74, G: 71, B: 71, A: 1}
-
-var guiApp fyne.App
-var guiWin fyne.Window
 
 //---------------------------------------------
 //Exported Structs
@@ -39,9 +19,20 @@ type Node struct {
 
 //A Grid with a specific number of rows & columns
 type Grid struct {
-	Rows  uint
-	Cols  uint
-	Walls map[Node]bool
+	Rows    uint
+	Cols    uint
+	Walls   map[Node]bool
+	painter *Painter
+}
+
+//---------------------------------------------
+//Exported Interfaces
+//---------------------------------------------
+
+//Painter defines some GUI library that wishes to get updates
+//on the changing nodes' status throughout the algorithm
+type Painter interface {
+	Paint(node Node, opened bool, closed bool)
 }
 
 //---------------------------------------------
@@ -49,62 +40,29 @@ type Grid struct {
 //---------------------------------------------
 
 type fNode struct {
-	node    Node
-	gCost   uint
-	hCost   uint
-	fCost   uint
-	closed  bool
-	visited bool
-	parent  *fNode
+	node   Node
+	gCost  uint
+	hCost  uint
+	fCost  uint
+	opened bool
+	closed bool
+	parent *fNode
 }
 
 //---------------------------------------------
 //Grid Methods
 //---------------------------------------------
 
-//AStarVisualization performs the A Star path finding animation
-func (grid *Grid) AStarVisualization(start, end Node) {
-	guiApp = app.New()
-
-	guiWin = guiApp.NewWindow("A* Path Visualization")
-	guiWin.Resize(fyne.Size{Width: 1200, Height: 800})
-	guiWin.SetFixedSize(true)
-	guiWin.Canvas().SetOnTypedKey(func(ev *fyne.KeyEvent) {
-		if ev.Name == fyne.KeySpace {
-			grid.aStarSearch(start, end)
-		}
-	})
-
-	container := fyne.NewContainerWithLayout(layout.NewGridLayout(int(grid.Cols)))
-	for r := uint(0); r < grid.Rows; r++ {
-		for c := uint(0); c < grid.Rows; c++ {
-			cellCol := simpleCellCol
-			node := Node{R: r, C: c}
-			if start == node {
-				cellCol = sourceCellCol
-			} else if end == node {
-				cellCol = destCellCol
-			} else if grid.Walls[node] {
-				cellCol = blockedCellCol
-			}
-			container.AddObject(canvas.NewRectangle(cellCol))
-		}
-	}
-
-	guiWin.SetContent(container)
-	guiWin.Show()
-	guiApp.Run()
-}
-
-func (grid *Grid) aStarSearch(start, end Node) []Node {
+//AStarSearch performs the pathfinding from source to dest
+func (grid *Grid) AStarSearch(source, dest Node) []Node {
 	fnodeMap := map[Node]*fNode{}
 	openList := binaryheap.NewWith(comparator)
 
-	fnodeMap[end] = &fNode{node: end}
-	fnodeMap[start] = &fNode{node: start, visited: true}
+	fnodeMap[dest] = &fNode{node: dest}
+	fnodeMap[source] = &fNode{node: source, opened: true}
 
 	pathlen := uint(0)
-	openList.Push(fnodeMap[start])
+	openList.Push(fnodeMap[source])
 
 	var current *fNode
 	for {
@@ -115,10 +73,9 @@ func (grid *Grid) aStarSearch(start, end Node) []Node {
 		current = popped.(*fNode)
 
 		current.closed = true
-		if current.node == end {
+		if current.node == dest {
 			return makepath(current, pathlen)
 		}
-		grid.updateCellCol(current)
 
 		pathlen = pathlen + 1
 
@@ -135,12 +92,11 @@ func (grid *Grid) aStarSearch(start, end Node) []Node {
 				continue
 			}
 
-			fnode.adjustFCost(current, fnodeMap[end], fnode.visited)
-			if !fnode.visited {
-				fnode.visited = true
+			if !fnode.opened {
 				openList.Push(fnode)
-				grid.updateCellCol(fnode)
 			}
+
+			fnode.adjust(current, fnodeMap[dest])
 		}
 	}
 }
@@ -165,46 +121,32 @@ func (grid *Grid) nodeNeighbours(node Node) []Node {
 	return neighbours
 }
 
-func (grid *Grid) updateCellCol(fnode *fNode) {
-	guiContainer := guiWin.Content().(*fyne.Container)
-	cellIndex := int(fnode.node.R*grid.Cols + fnode.node.C)
-
-	gridCell := guiContainer.Objects[cellIndex].(*canvas.Rectangle)
-
-	color := openCellCol
-	if fnode.closed {
-		color = closedCellCol
-	}
-
-	gridCell.FillColor = color
-	gridCell.Refresh()
-}
-
 //---------------------------------------------
 //fNode Methods
 //---------------------------------------------
 
-func (fnode *fNode) adjustFCost(start, end *fNode, visited bool) {
+func (fnode *fNode) adjust(current, dest *fNode) {
 	gCost := uint(0)
 	hCost := uint(0)
 	fCost := uint(0)
-	current := fnode.node
 
-	if absDiff(current.R, start.node.R) == 1 &&
-		absDiff(current.C, start.node.C) == 1 {
-		gCost = start.gCost + diagonalCost
+	if absDiff(fnode.node.R, current.node.R) == 1 &&
+		absDiff(fnode.node.C, current.node.C) == 1 {
+		gCost = current.gCost + diagonalCost
 	} else {
-		gCost = start.gCost + simpleCost
+		gCost = current.gCost + simpleCost
 	}
-	hCost = max(absDiff(current.R, end.node.R), absDiff(current.C, end.node.C)) * 10
+	hCost = max(absDiff(fnode.node.R, dest.node.R),
+		absDiff(fnode.node.C, dest.node.C)) * 10
 	fCost = gCost + hCost
 
-	if !visited || gCost < fnode.gCost {
-		fnode.parent = start
+	if !fnode.opened || gCost < fnode.gCost {
 		fnode.gCost = gCost
 		fnode.hCost = hCost
 		fnode.fCost = fCost
+		fnode.parent = current
 	}
+	fnode.opened = true
 }
 
 //---------------------------------------------
