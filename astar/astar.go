@@ -73,7 +73,6 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 		current = popped.(*fNode)
 
 		current.closed = true
-
 		if grid.Artist != nil {
 			grid.Artist.Paint(current.node, current.opened, current.closed)
 		}
@@ -97,14 +96,15 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 				continue
 			}
 
-			if !fnode.opened {
+			wasOpened := fnode.opened
+			fnode.adjust(current, fnodeMap[dest])
+
+			if !wasOpened {
 				openList.Push(fnode)
 				if grid.Artist != nil {
-					grid.Artist.Paint(fnode.node, fnode.opened, fnode.closed)
+					grid.Artist.Paint(fnode.node, true, false)
 				}
 			}
-
-			fnode.adjust(current, fnodeMap[dest])
 		}
 	}
 }
