@@ -19,10 +19,10 @@ type Node struct {
 
 //A Grid with a specific number of rows & columns
 type Grid struct {
-	Rows    uint
-	Cols    uint
-	Walls   map[Node]bool
-	painter *Painter
+	Rows   uint
+	Cols   uint
+	Walls  map[Node]bool
+	Artist Painter
 }
 
 //---------------------------------------------
@@ -73,6 +73,11 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 		current = popped.(*fNode)
 
 		current.closed = true
+
+		if grid.Artist != nil {
+			grid.Artist.Paint(current.node, current.opened, current.closed)
+		}
+
 		if current.node == dest {
 			return makepath(current, pathlen)
 		}
@@ -94,6 +99,9 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 
 			if !fnode.opened {
 				openList.Push(fnode)
+				if grid.Artist != nil {
+					grid.Artist.Paint(fnode.node, fnode.opened, fnode.closed)
+				}
 			}
 
 			fnode.adjust(current, fnodeMap[dest])
