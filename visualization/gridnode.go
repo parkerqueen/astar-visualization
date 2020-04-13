@@ -5,6 +5,7 @@ import (
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
 )
@@ -40,7 +41,8 @@ func (gnr *gridNodeRenderer) MinSize() fyne.Size {
 
 func (gnr *gridNodeRenderer) Refresh() {
 	gnr.applyTheme()
-	gnr.label.Text = gnr.gnode.Label
+	gnr.color = gnr.gnode.color
+	gnr.label.Text = gnr.gnode.label
 	gnr.Layout(gnr.gnode.Size())
 	canvas.Refresh(gnr.gnode)
 }
@@ -56,7 +58,7 @@ func (gnr *gridNodeRenderer) Objects() []fyne.CanvasObject {
 func (gnr *gridNodeRenderer) Destroy() {}
 
 func (gnr *gridNodeRenderer) padding() fyne.Size {
-	return fyne.NewSize(theme.Padding()*2, theme.Padding()*2)
+	return fyne.NewSize(theme.Padding()*1, theme.Padding()*1)
 }
 
 func (gnr *gridNodeRenderer) applyTheme() {
@@ -66,29 +68,46 @@ func (gnr *gridNodeRenderer) applyTheme() {
 
 type gridNode struct {
 	widget.BaseWidget
-	Label string
-	Color color.Color
+
+	label string
+	color color.Color
+
+	onClick            func(*desktop.MouseEvent)
+	onPressedMouseMove func(*desktop.MouseEvent)
+}
+
+func (gn *gridNode) MouseUp(ev *desktop.MouseEvent) {}
+func (gn *gridNode) MouseDown(ev *desktop.MouseEvent) {
+	gn.onClick(ev)
+}
+
+func (gn *gridNode) MouseIn(*desktop.MouseEvent) {}
+func (gn *gridNode) MouseOut()                   {}
+func (gn *gridNode) MouseMoved(ev *desktop.MouseEvent) {
+	if ev.Button == desktop.LeftMouseButton {
+		gn.onPressedMouseMove(ev)
+	}
+}
+
+func (gn *gridNode) CreateRenderer() fyne.WidgetRenderer {
+	label := canvas.NewText(gn.label, theme.TextColor())
+	label.Alignment = fyne.TextAlignCenter
+	objects := []fyne.CanvasObject{label}
+	return &gridNodeRenderer{label: label, color: gn.color, objects: objects, gnode: gn}
 }
 
 func (gn *gridNode) setLabel(label string) {
-	gn.Label = label
+	gn.label = label
 	gn.Refresh()
 }
 
 func (gn *gridNode) setColor(color color.Color) {
-	gn.Color = color
+	gn.color = color
 	gn.Refresh()
 }
 
-func (gn *gridNode) CreateRenderer() fyne.WidgetRenderer {
-	label := canvas.NewText(gn.Label, theme.TextColor())
-	label.Alignment = fyne.TextAlignCenter
-	objects := []fyne.CanvasObject{label}
-	return &gridNodeRenderer{label: label, color: gn.Color, objects: objects, gnode: gn}
-}
-
 func newGridNode(label string, color color.Color) *gridNode {
-	gn := &gridNode{Label: label, Color: color}
+	gn := &gridNode{label: label, color: color}
 	gn.ExtendBaseWidget(gn)
 	return gn
 }
