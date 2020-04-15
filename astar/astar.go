@@ -176,7 +176,7 @@ func comparator(a, b interface{}) int {
 
 func makepath(fnode *fNode, pathlen uint) []Node {
 	path := make([]Node, 0, pathlen)
-	for ; fnode.parent != nil; fnode = fnode.parent {
+	for ; fnode != nil; fnode = fnode.parent {
 		path = append(path, fnode.node)
 	}
 	return path
