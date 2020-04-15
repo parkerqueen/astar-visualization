@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
+	"github.com/parkerqueen/a-star-go/astar"
 )
 
 type gridNodeRenderer struct {
@@ -66,26 +67,29 @@ func (gnr *gridNodeRenderer) applyTheme() {
 	gnr.label.Color = theme.TextColor()
 }
 
+type callback func(astar.Node, *desktop.MouseEvent)
+
 type gridNode struct {
 	widget.BaseWidget
 
+	node  astar.Node
 	label string
 	color color.Color
 
-	onClick            func(*desktop.MouseEvent)
-	onPressedMouseMove func(*desktop.MouseEvent)
+	onMouseDown callback
+	onMouseMove callback
 }
 
 func (gn *gridNode) MouseUp(ev *desktop.MouseEvent) {}
 func (gn *gridNode) MouseDown(ev *desktop.MouseEvent) {
-	gn.onClick(ev)
+	gn.onMouseDown(gn.node, ev)
 }
 
 func (gn *gridNode) MouseIn(*desktop.MouseEvent) {}
 func (gn *gridNode) MouseOut()                   {}
 func (gn *gridNode) MouseMoved(ev *desktop.MouseEvent) {
 	if ev.Button == desktop.LeftMouseButton {
-		gn.onPressedMouseMove(ev)
+		gn.onMouseMove(gn.node, ev)
 	}
 }
 
@@ -106,8 +110,11 @@ func (gn *gridNode) setColor(color color.Color) {
 	gn.Refresh()
 }
 
-func newGridNode(label string, color color.Color) *gridNode {
-	gn := &gridNode{label: label, color: color}
+func newGridNode(node astar.Node, label string, color color.Color,
+	onMouseDown callback, onMouseMove callback) *gridNode {
+
+	gn := &gridNode{node: node, label: label, color: color, onMouseDown: onMouseDown,
+		onMouseMove: onMouseMove}
 	gn.ExtendBaseWidget(gn)
 	return gn
 }
