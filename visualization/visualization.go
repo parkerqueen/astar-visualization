@@ -31,7 +31,6 @@ type visualization struct {
 	actionsContainer *fyne.Container
 
 	grid        *astar.Grid
-	walls       map[astar.Node]bool
 	source      astar.Node
 	destination astar.Node
 
@@ -41,7 +40,8 @@ type visualization struct {
 func (vis *visualization) init() {
 	vis.source = astar.Node{R: gridRows, C: gridCols}
 	vis.destination = astar.Node{R: gridRows, C: gridCols}
-	vis.grid = &astar.Grid{Rows: gridRows, Cols: gridCols, Artist: vis}
+	vis.grid = &astar.Grid{Rows: gridRows, Cols: gridCols, Walls: make(map[astar.Node]bool),
+		Artist: vis}
 
 	vis.app = app.New()
 	vis.win = vis.app.NewWindow("A* Path Visualization")
@@ -67,7 +67,10 @@ func (vis *visualization) initContainer() *fyne.Container {
 		}
 
 		vis.status = running
-		vis.grid.AStarSearch(vis.source, vis.destination)
+		path := vis.grid.AStarSearch(vis.source, vis.destination)
+		for _, node := range path {
+			vis.getGridNode(node).setColor(pathedNodeCol)
+		}
 	})
 
 	sourceAction := widget.NewButton("CHOOSE SOURCE", func() {
@@ -85,7 +88,7 @@ func (vis *visualization) initContainer() *fyne.Container {
 }
 
 func (vis *visualization) newGridNode(node astar.Node, color color.RGBA) *gridNode {
-	return newGridNode(node, "", color, vis.onClickCB, vis.onMouseMoveCB)
+	return newGridNode(node, "", color, vis.onMouseDownCB, vis.onMouseInCB)
 }
 
 func (vis *visualization) Paint(node astar.Node, opened bool, closed bool) {
@@ -118,7 +121,22 @@ func (vis *visualization) destinationSet() bool {
 	return vis.destination.R != gridRows
 }
 
-func (vis *visualization) onClickCB(node astar.Node, ev *desktop.MouseEvent) {
+func (vis *visualization) onMouseInCB(node astar.Node, ev *desktop.MouseEvent) {
+	if vis.status == walling && ev.Button == desktop.LeftMouseButton &&
+		node != vis.source && node != vis.destination {
+
+		isWalled := vis.grid.Walls[node]
+		vis.grid.Walls[node] = !isWalled
+
+		if !isWalled {
+			vis.getGridNode(node).setColor(walledNodeCol)
+		} else {
+			vis.getGridNode(node).setColor(simpleNodeCol)
+		}
+	}
+}
+
+func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent) {
 	if vis.status == choosingSource {
 		if vis.sourceSet() {
 			vis.getGridNode(vis.source).setColor(simpleNodeCol)
@@ -134,10 +152,8 @@ func (vis *visualization) onClickCB(node astar.Node, ev *desktop.MouseEvent) {
 		vis.destination = node
 		vis.getGridNode(node).setColor(destinationNodeCol)
 	}
-	vis.status = running
+	vis.status = walling
 }
-
-func (vis *visualization) onMouseMoveCB(node astar.Node, ev *desktop.MouseEvent) {}
 
 //AStarVisualization begins the visualization GUI for the A* Pathfinding
 func AStarVisualization() {

@@ -76,21 +76,19 @@ type gridNode struct {
 	label string
 	color color.Color
 
+	onMouseIn   callback
 	onMouseDown callback
-	onMouseMove callback
+}
+
+func (gn *gridNode) MouseOut()                         {}
+func (gn *gridNode) MouseMoved(ev *desktop.MouseEvent) {}
+func (gn *gridNode) MouseIn(ev *desktop.MouseEvent) {
+	gn.onMouseIn(gn.node, ev)
 }
 
 func (gn *gridNode) MouseUp(ev *desktop.MouseEvent) {}
 func (gn *gridNode) MouseDown(ev *desktop.MouseEvent) {
 	gn.onMouseDown(gn.node, ev)
-}
-
-func (gn *gridNode) MouseIn(*desktop.MouseEvent) {}
-func (gn *gridNode) MouseOut()                   {}
-func (gn *gridNode) MouseMoved(ev *desktop.MouseEvent) {
-	if ev.Button == desktop.LeftMouseButton {
-		gn.onMouseMove(gn.node, ev)
-	}
 }
 
 func (gn *gridNode) CreateRenderer() fyne.WidgetRenderer {
@@ -111,10 +109,10 @@ func (gn *gridNode) setColor(color color.Color) {
 }
 
 func newGridNode(node astar.Node, label string, color color.Color,
-	onMouseDown callback, onMouseMove callback) *gridNode {
+	onMouseDown callback, onMouseIn callback) *gridNode {
 
 	gn := &gridNode{node: node, label: label, color: color, onMouseDown: onMouseDown,
-		onMouseMove: onMouseMove}
+		onMouseIn: onMouseIn}
 	gn.ExtendBaseWidget(gn)
 	return gn
 }
