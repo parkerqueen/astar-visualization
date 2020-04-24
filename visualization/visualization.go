@@ -22,6 +22,7 @@ const (
 	choosingSource
 	choosingDestination
 	running
+	finished
 )
 
 type visualization struct {
@@ -87,10 +88,6 @@ func (vis *visualization) initContainer() *fyne.Container {
 	return fyne.NewContainerWithLayout(layout.NewVBoxLayout(), vis.nodesContainer, vis.actionsContainer)
 }
 
-func (vis *visualization) newGridNode(node astar.Node, color color.RGBA) *gridNode {
-	return newGridNode(node, "", color, vis.onMouseDownCB, vis.onMouseInCB)
-}
-
 func (vis *visualization) Paint(node astar.Node, opened bool, closed bool) {
 	if node == vis.source || node == vis.destination {
 		return
@@ -108,6 +105,58 @@ func (vis *visualization) Paint(node astar.Node, opened bool, closed bool) {
 	time.Sleep(10 * time.Millisecond)
 }
 
+func (vis *visualization) onMouseInCB(node astar.Node, ev *desktop.MouseEvent) {
+	if vis.status == walling && ev.Button == desktop.LeftMouseButton &&
+		node != vis.source && node != vis.destination {
+		vis.toggleWalled(node)
+	}
+}
+
+func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent) {
+	if vis.status == walling && node != vis.source && node != vis.destination {
+		vis.toggleWalled(node)
+	} else if vis.status == choosingSource {
+		vis.setSource(node)
+		vis.status = walling
+	} else if vis.status == choosingDestination {
+		vis.setDestination(node)
+		vis.status = walling
+	}
+}
+
+func (vis *visualization) toggleWalled(node astar.Node) {
+	isWalled := vis.grid.Walls[node]
+	vis.grid.Walls[node] = !isWalled
+
+	if !isWalled {
+		vis.getGridNode(node).setColor(walledNodeCol)
+	} else {
+		vis.getGridNode(node).setColor(simpleNodeCol)
+	}
+}
+
+func (vis *visualization) setSource(node astar.Node) {
+	if vis.sourceSet() {
+		vis.getGridNode(vis.source).setColor(simpleNodeCol)
+	}
+
+	vis.source = node
+	vis.getGridNode(node).setColor(sourceNodeCol)
+}
+
+func (vis *visualization) setDestination(node astar.Node) {
+	if vis.destinationSet() {
+		vis.getGridNode(vis.destination).setColor(simpleNodeCol)
+	}
+
+	vis.destination = node
+	vis.getGridNode(node).setColor(destinationNodeCol)
+}
+
+func (vis *visualization) newGridNode(node astar.Node, color color.RGBA) *gridNode {
+	return newGridNode(node, "", color, vis.onMouseDownCB, vis.onMouseInCB)
+}
+
 func (vis *visualization) getGridNode(node astar.Node) *gridNode {
 	index := int(node.R*vis.grid.Cols + node.C)
 	return vis.nodesContainer.Objects[index].(*gridNode)
@@ -119,40 +168,6 @@ func (vis *visualization) sourceSet() bool {
 
 func (vis *visualization) destinationSet() bool {
 	return vis.destination.R != gridRows
-}
-
-func (vis *visualization) onMouseInCB(node astar.Node, ev *desktop.MouseEvent) {
-	if vis.status == walling && ev.Button == desktop.LeftMouseButton &&
-		node != vis.source && node != vis.destination {
-
-		isWalled := vis.grid.Walls[node]
-		vis.grid.Walls[node] = !isWalled
-
-		if !isWalled {
-			vis.getGridNode(node).setColor(walledNodeCol)
-		} else {
-			vis.getGridNode(node).setColor(simpleNodeCol)
-		}
-	}
-}
-
-func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent) {
-	if vis.status == choosingSource {
-		if vis.sourceSet() {
-			vis.getGridNode(vis.source).setColor(simpleNodeCol)
-		}
-
-		vis.source = node
-		vis.getGridNode(node).setColor(sourceNodeCol)
-	} else if vis.status == choosingDestination {
-		if vis.destinationSet() {
-			vis.getGridNode(vis.destination).setColor(simpleNodeCol)
-		}
-
-		vis.destination = node
-		vis.getGridNode(node).setColor(destinationNodeCol)
-	}
-	vis.status = walling
 }
 
 //AStarVisualization begins the visualization GUI for the A* Pathfinding
