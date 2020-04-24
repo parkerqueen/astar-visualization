@@ -26,10 +26,16 @@ const (
 )
 
 type visualization struct {
-	app              fyne.App
-	win              fyne.Window
+	app fyne.App
+	win fyne.Window
+
 	nodesContainer   *fyne.Container
 	actionsContainer *fyne.Container
+
+	runAction         *widget.Button
+	sourceAction      *widget.Button
+	destinationAction *widget.Button
+	resetAction       *widget.Button
 
 	grid        *astar.Grid
 	source      astar.Node
@@ -39,22 +45,21 @@ type visualization struct {
 }
 
 func (vis *visualization) init() {
+	vis.app = app.New()
+	vis.win = vis.app.NewWindow("A* Path Visualization")
+	vis.win.Resize(fyne.Size{Width: 1200, Height: 800})
+	vis.win.SetFixedSize(true)
+	vis.win.SetContent(vis.setup())
+	vis.win.Show()
+	vis.app.Run()
+}
+
+func (vis *visualization) setup() *fyne.Container {
 	vis.source = astar.Node{R: gridRows, C: gridCols}
 	vis.destination = astar.Node{R: gridRows, C: gridCols}
 	vis.grid = &astar.Grid{Rows: gridRows, Cols: gridCols, Walls: make(map[astar.Node]bool),
 		Artist: vis}
 
-	vis.app = app.New()
-	vis.win = vis.app.NewWindow("A* Path Visualization")
-	vis.win.Resize(fyne.Size{Width: 1200, Height: 800})
-	vis.win.SetFixedSize(true)
-
-	vis.win.SetContent(vis.initContainer())
-	vis.win.Show()
-	vis.app.Run()
-}
-
-func (vis *visualization) initContainer() *fyne.Container {
 	vis.nodesContainer = fyne.NewContainerWithLayout(layout.NewGridLayout(gridCols))
 	for r := uint(0); r < gridRows; r++ {
 		for c := uint(0); c < gridCols; c++ {
@@ -62,8 +67,9 @@ func (vis *visualization) initContainer() *fyne.Container {
 		}
 	}
 
-	runAction := widget.NewButton("RUN", func() {
-		if !vis.sourceSet() || !vis.destinationSet() {
+	vis.runAction = widget.NewButton("RUN", func() {
+		if !vis.sourceSet() || !vis.destinationSet() ||
+			vis.status == running || vis.status == finished {
 			return
 		}
 
@@ -72,18 +78,30 @@ func (vis *visualization) initContainer() *fyne.Container {
 		for _, node := range path {
 			vis.getGridNode(node).setColor(pathedNodeCol)
 		}
+		vis.status = finished
+		vis.showResetAction()
 	})
 
-	sourceAction := widget.NewButton("CHOOSE SOURCE", func() {
-		vis.status = choosingSource
+	vis.sourceAction = widget.NewButton("CHOOSE SOURCE", func() {
+		if vis.status != finished {
+			vis.status = choosingSource
+		}
 	})
 
-	destinationAction := widget.NewButton("CHOOSE DESTINATION", func() {
-		vis.status = choosingDestination
+	vis.destinationAction = widget.NewButton("CHOOSE DESTINATION", func() {
+		if vis.status != finished {
+			vis.status = choosingDestination
+		}
 	})
+
+	vis.resetAction = widget.NewButton("RESET", func() {
+		vis.win.SetContent(vis.setup())
+		vis.status = walling
+	})
+	vis.resetAction.Hide()
 
 	vis.actionsContainer = fyne.NewContainerWithLayout(layout.NewHBoxLayout(), layout.NewSpacer(),
-		sourceAction, destinationAction, runAction, layout.NewSpacer())
+		vis.sourceAction, vis.destinationAction, vis.runAction, vis.resetAction, layout.NewSpacer())
 
 	return fyne.NewContainerWithLayout(layout.NewVBoxLayout(), vis.nodesContainer, vis.actionsContainer)
 }
@@ -122,6 +140,13 @@ func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent)
 		vis.setDestination(node)
 		vis.status = walling
 	}
+}
+
+func (vis *visualization) showResetAction() {
+	vis.runAction.Hide()
+	vis.sourceAction.Hide()
+	vis.destinationAction.Hide()
+	vis.resetAction.Show()
 }
 
 func (vis *visualization) toggleWalled(node astar.Node) {
