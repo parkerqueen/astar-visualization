@@ -55,6 +55,7 @@ func (vis *visualization) init() {
 }
 
 func (vis *visualization) setup() *fyne.Container {
+	vis.status = walling
 	vis.source = astar.Node{R: gridRows, C: gridCols}
 	vis.destination = astar.Node{R: gridRows, C: gridCols}
 	vis.grid = &astar.Grid{Rows: gridRows, Cols: gridCols, Walls: make(map[astar.Node]bool),
@@ -83,20 +84,19 @@ func (vis *visualization) setup() *fyne.Container {
 	})
 
 	vis.sourceAction = widget.NewButton("CHOOSE SOURCE", func() {
-		if vis.status != finished {
+		if vis.status != running && vis.status != finished {
 			vis.status = choosingSource
 		}
 	})
 
 	vis.destinationAction = widget.NewButton("CHOOSE DESTINATION", func() {
-		if vis.status != finished {
+		if vis.status != running && vis.status != finished {
 			vis.status = choosingDestination
 		}
 	})
 
 	vis.resetAction = widget.NewButton("RESET", func() {
 		vis.win.SetContent(vis.setup())
-		vis.status = walling
 	})
 	vis.resetAction.Hide()
 
