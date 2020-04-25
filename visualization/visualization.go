@@ -25,6 +25,14 @@ const (
 	finished
 )
 
+const (
+	wallingLabel             = "Click & drag to draw obstacles/walls."
+	choosingSourceLabel      = "Click on any node to mark it as the source."
+	choosingDestinationLabel = "Click on any node to mark it as the destination."
+	runningLabel             = "Sit back & enjoy the animation."
+	finishedLabel            = "Reset the board to run the visualization again."
+)
+
 type visualization struct {
 	app fyne.App
 	win fyne.Window
@@ -36,6 +44,7 @@ type visualization struct {
 	sourceAction      *widget.Button
 	destinationAction *widget.Button
 	resetAction       *widget.Button
+	label             *widget.Label
 
 	grid        *astar.Grid
 	source      astar.Node
@@ -55,7 +64,6 @@ func (vis *visualization) init() {
 }
 
 func (vis *visualization) setup() *fyne.Container {
-	vis.status = walling
 	vis.source = astar.Node{R: gridRows, C: gridCols}
 	vis.destination = astar.Node{R: gridRows, C: gridCols}
 	vis.grid = &astar.Grid{Rows: gridRows, Cols: gridCols, Walls: make(map[astar.Node]bool),
@@ -75,23 +83,27 @@ func (vis *visualization) setup() *fyne.Container {
 		}
 
 		vis.status = running
+		vis.label.SetText(runningLabel)
 		path := vis.grid.AStarSearch(vis.source, vis.destination)
 		for _, node := range path {
 			vis.getGridNode(node).setColor(pathedNodeCol)
 		}
 		vis.status = finished
+		vis.label.SetText(finishedLabel)
 		vis.showResetAction()
 	})
 
 	vis.sourceAction = widget.NewButton("CHOOSE SOURCE", func() {
 		if vis.status != running && vis.status != finished {
 			vis.status = choosingSource
+			vis.label.SetText(choosingSourceLabel)
 		}
 	})
 
 	vis.destinationAction = widget.NewButton("CHOOSE DESTINATION", func() {
 		if vis.status != running && vis.status != finished {
 			vis.status = choosingDestination
+			vis.label.SetText(choosingDestinationLabel)
 		}
 	})
 
@@ -103,7 +115,11 @@ func (vis *visualization) setup() *fyne.Container {
 	vis.actionsContainer = fyne.NewContainerWithLayout(layout.NewHBoxLayout(), layout.NewSpacer(),
 		vis.sourceAction, vis.destinationAction, vis.runAction, vis.resetAction, layout.NewSpacer())
 
-	return fyne.NewContainerWithLayout(layout.NewVBoxLayout(), vis.nodesContainer, vis.actionsContainer)
+	vis.status = walling
+	vis.label = widget.NewLabel(wallingLabel)
+
+	return fyne.NewContainerWithLayout(layout.NewVBoxLayout(), vis.nodesContainer, vis.actionsContainer,
+		fyne.NewContainerWithLayout(layout.NewHBoxLayout(), layout.NewSpacer(), vis.label, layout.NewSpacer()))
 }
 
 func (vis *visualization) Paint(node astar.Node, opened bool, closed bool) {
@@ -136,9 +152,11 @@ func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent)
 	} else if vis.status == choosingSource {
 		vis.setSource(node)
 		vis.status = walling
+		vis.label.SetText(wallingLabel)
 	} else if vis.status == choosingDestination {
 		vis.setDestination(node)
 		vis.status = walling
+		vis.label.SetText(wallingLabel)
 	}
 }
 
