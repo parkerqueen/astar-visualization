@@ -32,7 +32,7 @@ type Grid struct {
 //Painter defines some GUI library that wishes to get updates
 //on the changing nodes' status throughout the algorithm
 type Painter interface {
-	Paint(node Node, opened bool, closed bool)
+	Paint(node Node, cost uint, opened bool, closed bool)
 }
 
 //---------------------------------------------
@@ -74,7 +74,7 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 
 		current.closed = true
 		if grid.Artist != nil {
-			grid.Artist.Paint(current.node, current.opened, current.closed)
+			grid.Artist.Paint(current.node, current.fCost, true, true)
 		}
 
 		if current.node == dest {
@@ -98,12 +98,12 @@ func (grid *Grid) AStarSearch(source, dest Node) []Node {
 
 			wasOpened := fnode.opened
 			fnode.adjust(current, fnodeMap[dest])
-
 			if !wasOpened {
 				openList.Push(fnode)
-				if grid.Artist != nil {
-					grid.Artist.Paint(fnode.node, true, false)
-				}
+			}
+
+			if grid.Artist != nil {
+				grid.Artist.Paint(fnode.node, fnode.fCost, true, false)
 			}
 		}
 	}
