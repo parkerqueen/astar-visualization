@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
-	"github.com/parkerqueen/a-star-go/astar"
+	"github.com/parkerqueen/astar-visualization/astar"
 )
 
 //WidgetRenderer for gridNode

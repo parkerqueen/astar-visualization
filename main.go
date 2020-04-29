@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/parkerqueen/a-star-go/visualization"
+	"github.com/parkerqueen/astar-visualization/visualization"
 )
 
 func main() {

@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
-	"github.com/parkerqueen/a-star-go/astar"
+	"github.com/parkerqueen/astar-visualization/astar"
 )
 
 //The number of rows & cols to show in the visualization

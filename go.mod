@@ -1,4 +1,4 @@
-module github.com/parkerqueen/a-star-go
+module github.com/parkerqueen/astar-visualization
 
 go 1.14
 

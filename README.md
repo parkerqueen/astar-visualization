@@ -1,1 +1,1 @@
-# a-star-go
+# astar-visualization
