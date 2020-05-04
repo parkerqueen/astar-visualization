@@ -28,4 +28,3 @@ If you wish to run on `Windows` or `MacOS` or any other flavor of `Linux`, you c
 
 ## Issues
 * Final help text of resetting the board is sometimes not displayed correctly.
-* One can select a source node as the destination node and vice versa. Stop it.

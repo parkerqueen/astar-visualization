@@ -100,12 +100,12 @@ func (vis *visualization) setup() *fyne.Container {
 			time.Sleep(10 * time.Millisecond)
 		}
 
-		vis.status = finished
-		vis.label.SetText(finishedLabel)
 		vis.runAction.Hide()
 		vis.sourceAction.Hide()
 		vis.destinationAction.Hide()
 		vis.resetAction.Show()
+		vis.status = finished
+		vis.label.SetText(finishedLabel)
 	})
 
 	vis.sourceAction = widget.NewButton("CHOOSE SOURCE", func() {
@@ -171,11 +171,11 @@ func (vis *visualization) onMouseInCB(node astar.Node, ev *desktop.MouseEvent) {
 func (vis *visualization) onMouseDownCB(node astar.Node, ev *desktop.MouseEvent) {
 	if vis.status == walling && node != vis.source && node != vis.destination {
 		vis.toggleWalled(node)
-	} else if vis.status == choosingSource {
+	} else if vis.status == choosingSource && node != vis.destination {
 		vis.setSource(node)
 		vis.status = walling
 		vis.label.SetText(wallingLabel)
-	} else if vis.status == choosingDestination {
+	} else if vis.status == choosingDestination && node != vis.source {
 		vis.setDestination(node)
 		vis.status = walling
 		vis.label.SetText(wallingLabel)
